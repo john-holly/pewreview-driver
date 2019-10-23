@@ -37,6 +37,8 @@ sudo python server.py --port 31337
 
 ### Client
 
+Each token of a command line is formatted as follows `<command> [,<sleep in microseconds>]` where `sleep in microseconds` is optional.
+
 ```bash
 python client.py --port 31337 LEFT,2 RIGHT,3 FIRE FIRE FIRE
 ```

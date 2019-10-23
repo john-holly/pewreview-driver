@@ -19,11 +19,12 @@
 import log
 
 from enum import Enum
+
 import os
 import sys
 import time
 
-import usb.core
+import hid
 
 """
 RQ_TYPE_TO_CLASS_INTERFACE (0x21 or 100001):
@@ -59,6 +60,10 @@ CHESEN_ELECTRONICS_CORP = 0x0a81
 USB_MISSILE_LAUNCHER = 0x0701
 
 
+def usleep(millis):
+    time.sleep(millis / 1000.0)
+
+
 class Command(Enum):
     UP = [0x02]
     DOWN = [0x01]
@@ -70,25 +75,24 @@ class Command(Enum):
 
 
 class TimedCommand(dict):
-    def __init__(self, cmd, sleep_time):
+    def __init__(self, cmd, millis):
         self.cmd = cmd
-        self.sleep_time = sleep_time
+        self.millis = millis
 
 
 class Launcher():
     logger = log.get(__name__)
 
     def __init__(self):
-        self.dev = usb.core.find(idVendor=CHESEN_ELECTRONICS_CORP, idProduct=USB_MISSILE_LAUNCHER)
+        self.dev = hid.device(CHESEN_ELECTRONICS_CORP, USB_MISSILE_LAUNCHER)
+
         if self.dev is None:
             raise ValueError('Launcher not found.')
         else:
-            self.dev.set_configuration()
-            cfg = self.dev.get_active_configuration()
-            self.logger.info('\n{}'.format(cfg))
+            self.dev.open(CHESEN_ELECTRONICS_CORP, USB_MISSILE_LAUNCHER)
 
     def send(self, cmd):
-        self.dev.ctrl_transfer(bmRequestType=TO_CLASS_INTERFACE, bRequest=SET_CONFIGURATION, data_or_wLength=cmd)
+        self.dev.send_feature_report(cmd)
 
     def up(self):
         self.logger.info(Command.UP.name)
@@ -106,10 +110,10 @@ class Launcher():
         self.logger.info(Command.RIGHT.name)
         self.send(Command.RIGHT)
 
-    def fire(self, sleep_time=7):
+    def fire(self, millis=7000):
         self.logger.info(Command.FIRE.name)
         self.send(Command.FIRE)
-        time.sleep(sleep_time)
+        usleep(millis)
 
     def stop(self):
         """
@@ -120,30 +124,30 @@ class Launcher():
         self.logger.info(Command.STOP.name)
         self.send(Command.STOP)
 
-    def chain(self, chain):
+    def stream(self, stream):
         """
         Execute a chain of commands
 
-        :param chain: A list of TimedCommand
+        :param stream: A list of TimedCommand
         :return:
         """
-        self.logger.debug("Received chain: {}".format([c.cmd for c in chain]))
-        for command in chain:
+        self.logger.debug("Received stream: {}".format([c.cmd for c in stream]))
+        for command in stream:
             self.logger.info(command.cmd.name)
             self.send(command.cmd.value)
-            time.sleep(command.sleep_time)
+            usleep(command.millis)
 
 
 def demo():
     launcher = Launcher()
-    launcher.chain([
-        TimedCommand(Command.UP, 1),
-        TimedCommand(Command.DOWN, 1),
-        TimedCommand(Command.LEFT, 1),
-        TimedCommand(Command.RIGHT, 1),
-        TimedCommand(Command.FIRE, 7),
-        TimedCommand(Command.FIRE, 7),
-        TimedCommand(Command.FIRE, 7),
+    launcher.stream([
+        TimedCommand(Command.UP, 1000),
+        TimedCommand(Command.DOWN, 1000),
+        TimedCommand(Command.LEFT, 1000),
+        TimedCommand(Command.RIGHT, 1000),
+        TimedCommand(Command.FIRE, 7000),
+        TimedCommand(Command.FIRE, 7000),
+        TimedCommand(Command.FIRE, 7000),
         TimedCommand(Command.STOP, 0),
     ])
 

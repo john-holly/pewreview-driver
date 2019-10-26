@@ -16,14 +16,11 @@
 #   Bus 003 Device 018: ID 0a81:0701 Chesen Electronics Corp. USB Missile Launcher
 #
 
-import log
-
 from enum import Enum
-
+import log
 import os
 import sys
 import time
-
 import hid
 
 """
@@ -59,6 +56,8 @@ SET_CONFIGURATION = 0x09
 CHESEN_ELECTRONICS_CORP = 0x0a81
 USB_MISSILE_LAUNCHER = 0x0701
 
+FIRE_TIME = 6250
+
 
 def usleep(millis):
     time.sleep(millis / 1000.0)
@@ -70,17 +69,17 @@ class Command(Enum):
     LEFT = [0x04]
     RIGHT = [0x08]
     FIRE = [0x10]
-    STOP = [0x20]
+    RESET = [0x20]
     STATUS = [0x40]
 
 
-class TimedCommand(dict):
-    def __init__(self, cmd, millis):
+class TimedCommand:
+    def __init__(self, cmd, nanos):
         self.cmd = cmd
-        self.millis = millis
+        self.nanos = nanos
 
 
-class Launcher():
+class Launcher:
     logger = log.get(__name__)
 
     def __init__(self):
@@ -110,10 +109,10 @@ class Launcher():
         self.logger.info(Command.RIGHT.name)
         self.send(Command.RIGHT)
 
-    def fire(self, millis=7000):
+    def fire(self, nanos=FIRE_TIME):
         self.logger.info(Command.FIRE.name)
         self.send(Command.FIRE)
-        usleep(millis)
+        usleep(nanos)
 
     def stop(self):
         """
@@ -121,8 +120,8 @@ class Launcher():
 
         :return:
         """
-        self.logger.info(Command.STOP.name)
-        self.send(Command.STOP)
+        self.logger.info(Command.RESET.name)
+        self.send(Command.RESET.value)
 
     def stream(self, stream):
         """
@@ -135,7 +134,8 @@ class Launcher():
         for command in stream:
             self.logger.info(command.cmd.name)
             self.send(command.cmd.value)
-            usleep(command.millis)
+            usleep(command.nanos)
+            self.stop()
 
 
 def demo():
@@ -145,10 +145,10 @@ def demo():
         TimedCommand(Command.DOWN, 1000),
         TimedCommand(Command.LEFT, 1000),
         TimedCommand(Command.RIGHT, 1000),
-        TimedCommand(Command.FIRE, 7000),
-        TimedCommand(Command.FIRE, 7000),
-        TimedCommand(Command.FIRE, 7000),
-        TimedCommand(Command.STOP, 0),
+        TimedCommand(Command.FIRE, FIRE_TIME),
+        TimedCommand(Command.FIRE, FIRE_TIME),
+        TimedCommand(Command.FIRE, FIRE_TIME),
+        TimedCommand(Command.RESET, 0),
     ])
 
 

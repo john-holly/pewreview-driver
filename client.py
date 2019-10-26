@@ -7,14 +7,20 @@ with timeouts.
 
 import socket
 import sys
-
 import log
+
+
+class LauncherException(Exception):
+    """Launcher hardware/software state error"""
+    pass
+
 
 logger = log.get("client")
 
 
 def usage(exit_code=0):
-    print("python client.py [--port 31337] LEFT,2 RIGHT,3 FIRE FIRE FIRE")
+    print("NOTE: CMD is one of [UP, DOWN, LEFT, RIGHT, FIRE, RESET]\n\n" +
+          "python client.py --port 31337 CMD[,<sleep in nanoseconds/number of missiles>]")
     sys.exit(exit_code)
 
 
@@ -37,6 +43,8 @@ if __name__ == "__main__":
 
             # Receive data from the server and shut down
             received = str(sock.recv(1024), "utf-8")
+            if received == '' or received is None:
+                raise LauncherException("Driver not responding, hardware in failed state or invalid command string sent.")
         finally:
             sock.close()
 

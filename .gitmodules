@@ -1,0 +1,3 @@
+[submodule "tools/hidapitester"]
+	path = tools/hidapitester
+	url = git@github.com:todbot/hidapitester.git

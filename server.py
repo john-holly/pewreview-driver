@@ -1,4 +1,4 @@
-from launcher import Launcher, TimedCommand, Command
+from launcher import Launcher, TimedCommand, Command, FIRE_TIME
 import log
 
 import sys
@@ -7,6 +7,7 @@ import socketserver
 
 logger = log.get("server")
 launcher = Launcher()
+
 
 def usage(exit_code=0):
     print("python server.py [--port 31337]")
@@ -28,19 +29,22 @@ class LaunchControl(socketserver.BaseRequestHandler):
         decoded = self.data.decode('utf-8')
         logger.info("{} wrote: {}".format(self.client_address[0], decoded))
         commands = decoded.split()
-
-        timed_cmds = list()
+        cmd_stream = list()
         for cmd_str in commands:
             if "," in cmd_str:
-                cmd, timeout = cmd_str.split(",")
-                timed_cmds.append(TimedCommand(Command[cmd], int(timeout)))
+                cmd, timeout_or_missiles = cmd_str.split(",")
+                if "FIRE" in cmd_str:
+                    cmd_stream += [TimedCommand(Command[cmd], FIRE_TIME)] * int(timeout_or_missiles)
+                else:
+                    cmd_stream.append(TimedCommand(Command[cmd], int(timeout_or_missiles)))
             else:
-                timed_cmds.append(TimedCommand(Command[cmd_str], 0))
-        # Append an extra STOP in case of omission
-        timed_cmds.append(TimedCommand(Command.STOP, 0))
-        print(timed_cmds)
-        launcher.stream(timed_cmds)
-
+                if cmd_str == "FIRE":
+                    cmd_stream.append(TimedCommand(Command[cmd_str], FIRE_TIME))
+                elif cmd_str == "STOP":
+                    cmd_stream.append(TimedCommand(Command[cmd_str], 0))
+                else:
+                    logger.error("Unable to interperet command token: {}".format(cmd_str))
+        launcher.stream(cmd_stream)
         # just send back the same data, but upper-cased
         self.request.sendall(self.data.upper())
 

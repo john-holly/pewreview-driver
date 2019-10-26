@@ -20,17 +20,17 @@ Install the requirements via `pip`.
 pip install -r requirements.txt
 ```
 
-## Running
+## Usage
 
 ### Driver Demo
+
+This would only be to show off what the launcher can do. This is the core driver that has a main function to demo.
 
 ```bash
 python launcher.py
 ```
 
 ### Server
-
-TODO - create udev rules to run without root privileges.
 
 ```bash
 sudo python server.py --port 31337
@@ -50,3 +50,9 @@ Each token of a command line is formatted as follows `<command> [,<sleep in nano
 python client.py --port 31337 CMD[,<sleep in nanoseconds/number of missiles>]
 ```
 
+## All Together
+
+1. Plug in launcher and ensure the computer sees it. 
+2. Start your server `python server.py --port 31337`.
+3. Send a command stream to the launcher via client `python client.py --port 31337 UP,2000 LEFT,1000 FIRE,3`.
+4. Assert geek dominance and profit.
